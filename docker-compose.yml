@@ -1,0 +1,77 @@
+# AI Content Factory — full stack
+# Run: docker-compose up --build
+# Scale workers: docker-compose up -d --scale worker=5
+# Dedicated queues: override CMD per service for trend/idea/script/video/virality
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_CELERY_BROKER=redis://redis:6379/1
+      - REDIS_CELERY_RESULT=redis://redis:6379/2
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_content_factory
+      - VIDEOS_DIR=/app/outputs/videos
+      - OUTPUTS_DIR=/app/outputs
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./outputs:/app/outputs
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_CELERY_BROKER=redis://redis:6379/1
+      - REDIS_CELERY_RESULT=redis://redis:6379/2
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_content_factory
+      - VIDEOS_DIR=/app/outputs/videos
+      - OUTPUTS_DIR=/app/outputs
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    depends_on:
+      - redis
+      - postgres
+    volumes:
+      - ./outputs:/app/outputs
+      - ./ml:/app/ml
+    # Scale: docker-compose up -d --scale worker=20 for 20 workers (all queues)
+    # For dedicated queues run multiple services:
+    # worker_idea:  CMD celery ... -Q idea -c 20
+    # worker_video: CMD celery ... -Q video -c 200
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ai_content_factory
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data: {}
+  postgres_data: {}

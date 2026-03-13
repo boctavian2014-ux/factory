@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI-Orchestrated Content Factory — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/theme.css" />
+</head>
+<body>
+  <div class="app-page">
+    <nav class="app-nav">
+      <div class="logo">
+        <a href="/">AI-Orchestrated Content Factory</a>
+        <span class="badge">Dashboard</span>
+      </div>
+      <div class="live-row">
+        <div class="live-dot" id="live-dot"></div>
+        <span class="live-text">Live: <strong id="live-status">Checking…</strong></span>
+      </div>
+      <div class="links">
+        <a href="/" class="active">Dashboard</a>
+        <a href="/run">Run pipeline</a>
+        <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+        <a href="/redoc" target="_blank" rel="noopener">ReDoc</a>
+        <a href="/health" target="_blank" rel="noopener">Health</a>
+      </div>
+    </nav>
+
+    <div id="banner-https" class="app-msg error" style="display:none; margin-bottom:1rem;">
+      Folosește <strong>http://</strong> nu https://. Deschide <a id="banner-http-link" href="#">http://localhost:8000</a>.
+    </div>
+    <div id="banner-offline" class="app-msg error" style="display:none; margin-bottom:1rem;">
+      Serverul nu răspunde. Pornește: <code>uvicorn api.main:app --host 0.0.0.0 --port 8000</code> în <code>ai-content-factory</code>.
+    </div>
+    <div class="hero">
+      <p>Orchestrator AI decide fluxul: analizează trenduri, alocă taskuri workerilor, optimizează producția. Pipeline-ul de mai jos este conectat la API-ul live.</p>
+    </div>
+
+    <p class="section-title">Pipeline complet (live endpoints)</p>
+    <div class="pipeline-wrap">
+      <div class="pipeline">
+        <a class="pipe-node" href="/docs#/trends" target="_blank" rel="noopener">Trend Detection</a>
+        <span class="pipe-arrow">↓</span>
+        <a class="pipe-node" href="/docs#/ideas" target="_blank" rel="noopener">Idea Swarm</a>
+        <span class="pipe-arrow">↓</span>
+        <span class="pipe-node muted">Style Cloning</span>
+        <span class="pipe-arrow">↓</span>
+        <a class="pipe-node" href="/docs#/scripts" target="_blank" rel="noopener">Script Engine</a>
+        <span class="pipe-arrow">↓</span>
+        <a class="pipe-node" href="/docs#/videos" target="_blank" rel="noopener">Video Rendering</a>
+        <span class="pipe-arrow">↓</span>
+        <a class="pipe-node" href="/docs#/virality" target="_blank" rel="noopener">Virality Model</a>
+        <span class="pipe-arrow">↓</span>
+        <span class="pipe-node muted">A/B Testing</span>
+        <span class="pipe-arrow">↓</span>
+        <a class="pipe-node" href="/docs#/schedule" target="_blank" rel="noopener">Scheduler</a>
+      </div>
+    </div>
+
+    <p class="section-title">1. Agent Orchestrator Layer</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">1</span> Agent Orchestrator</h3>
+        <p class="sub">AI orchestrator decide ce se întâmplă în pipeline</p>
+        <ul>
+          <li>Analizează trenduri</li>
+          <li>Decide ce idei merită generate</li>
+          <li>Alocă taskuri workerilor (Celery)</li>
+          <li>Optimizează producția video</li>
+        </ul>
+        <p class="sub" style="margin-top:0.6rem;">Decizii: câte idei, ce tip video, ce stil creator.</p>
+        <p class="api-link"><a href="/docs" target="_blank" rel="noopener">→ API & workers</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">2. Trend Intelligence Engine</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">2</span> Trend Intelligence</h3>
+        <p class="sub">Surse: TikTok hashtags, YouTube Shorts, Google Trends, Reddit</p>
+        <ul>
+          <li>engagement velocity, share velocity</li>
+          <li>comment growth, creator growth rate</li>
+          <li>Output: trend_score, time_to_viral</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/trends" target="_blank" rel="noopener">POST /trends/update</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">3. Idea Generation Swarm</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">3</span> Idea Swarm</h3>
+        <p class="sub">Cluster de AI idea agents — exemplu: 500 trenduri × 100 idei = 50.000 idei</p>
+        <ul>
+          <li>hook, concept, caption, hashtags, trend_angle</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/ideas" target="_blank" rel="noopener">POST /ideas/generate</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">4. Creator Style Cloning</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">4</span> Style Cloning</h3>
+        <p class="sub">Analiză creatori virali TikTok — hook pattern, speech speed, caption structure, video pacing, editing style</p>
+        <ul>
+          <li>Output: style embeddings pentru conținut în stilul creatorilor virali</li>
+        </ul>
+        <p class="api-link">(În roadmap — style embeddings)</p>
+      </div>
+    </div>
+
+    <p class="section-title">5. Script Generation Engine</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">5</span> Script Engine</h3>
+        <p class="sub">Idei → scripturi: 3s hook, 15–30s narațiune, scene breakdown, text overlays</p>
+        <ul>
+          <li>Scene 1 — Hook · Scene 2 — Context · Scene 3 — Reveal · Scene 4 — CTA</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/scripts" target="_blank" rel="noopener">POST /scripts/generate</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">6. Video Rendering Cluster</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">6</span> Video Rendering</h3>
+        <p class="sub">Script → scene generator → image/video assets → voiceover AI → subtitles → FFmpeg render</p>
+        <ul>
+          <li>Output: 9:16 vertical, 1080×1920, 15–30 sec</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/videos" target="_blank" rel="noopener">POST /videos/render</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">7. Virality Prediction Engine</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">7</span> Virality Model</h3>
+        <p class="sub">Features: hook strength, trend score, hashtags, topic popularity, caption sentiment</p>
+        <ul>
+          <li>Output: virality_score (0–1)</li>
+          <li>Filtru: publish only if score &gt; 0.75</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/virality" target="_blank" rel="noopener">POST /virality/score</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">8. Auto A/B Testing System</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">8</span> A/B Testing</h3>
+        <p class="sub">Per video: 3 hooks × 2 captions × 2 hashtag sets = 12 variante. Sistemul testează și învață din performanță.</p>
+        <ul>
+          <li>În roadmap — A/B variants & learning</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="section-title">9. Content Scheduler</p>
+    <div class="cards">
+      <div class="card">
+        <h3><span class="num">9</span> Scheduler</h3>
+        <p class="sub">Videouri aprobate programate pentru TikTok, Instagram Reels, YouTube Shorts</p>
+        <ul>
+          <li>Optimizare: posting time, hashtags, caption</li>
+        </ul>
+        <p class="api-link"><a href="/docs#/schedule" target="_blank" rel="noopener">POST /schedule/create</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">Fluxuri alternative (live)</p>
+    <div class="pipeline-wrap">
+      <div class="pipeline">
+        <a class="pipe-node" href="/docs#/clips" target="_blank" rel="noopener">Clips (long-form → shorts)</a>
+        <span class="pipe-arrow">·</span>
+        <a class="pipe-node" href="/docs#/repo" target="_blank" rel="noopener">Repo → idea / to-video</a>
+      </div>
+    </div>
+
+    <p class="section-title">⚙️ Infrastructure Stack</p>
+    <div class="pipeline-wrap">
+      <div class="stack">
+        <span>FastAPI</span><span>Redis</span><span>Celery</span><span>PostgreSQL</span><span>PyTorch</span><span>Docker</span><span>Kubernetes</span><span>Kafka</span>
+      </div>
+    </div>
+
+    <p class="section-title">📊 Worker Scaling (producție mare)</p>
+    <div class="pipeline-wrap">
+      <table class="worker-tbl">
+        <thead><tr><th>Worker</th><th>Count</th></tr></thead>
+        <tbody>
+          <tr><td>Trend workers</td><td>10</td></tr>
+          <tr><td>Idea workers</td><td>40</td></tr>
+          <tr><td>Script workers</td><td>60</td></tr>
+          <tr><td>Video workers</td><td>300</td></tr>
+          <tr><td>Virality workers</td><td>20</td></tr>
+          <tr><td>Scheduler workers</td><td>10</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="section-title">📈 Output posibil</p>
+    <div class="metrics">
+      <div class="metric"><div class="val">1M</div><div class="label">idei / lună</div></div>
+      <div class="metric"><div class="val">100K</div><div class="label">video / zi</div></div>
+    </div>
+
+    <footer class="app-footer">
+      <p>AI-Orchestrated Content Factory · <a href="/">Dashboard</a> · <a href="/run">Run pipeline</a> · <a href="/docs">API</a> · <a href="/health">Health</a></p>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      var correctRootUrl = 'http://' + (window.location.host || 'localhost:8000');
+      var bannerHttpLink = document.getElementById('banner-http-link');
+      if (bannerHttpLink) bannerHttpLink.href = correctRootUrl;
+      if (window.location.protocol === 'https:') {
+        var bannerHttps = document.getElementById('banner-https');
+        if (bannerHttps) bannerHttps.style.display = 'block';
+      }
+      async function parseJsonResponse(r) {
+        var text = await r.text();
+        try { return { ok: r.ok, data: text ? JSON.parse(text) : {} }; } catch (e) { return { ok: false, data: null, errorText: text || r.statusText }; }
+      }
+      async function checkHealth() {
+        var dot = document.getElementById('live-dot');
+        var status = document.getElementById('live-status');
+        var bannerOffline = document.getElementById('banner-offline');
+        if (!dot || !status) return;
+        try {
+          var r = await fetch('/health');
+          var res = await parseJsonResponse(r);
+          var data = res.data;
+          if (res.errorText) { dot.className = 'live-dot err'; status.textContent = 'Eroare'; if (bannerOffline) bannerOffline.style.display = 'block'; return; }
+          dot.className = 'live-dot ' + (data && data.status === 'ok' ? 'ok' : 'err');
+          status.textContent = data && data.status === 'ok' ? 'Operațional' : 'Eroare';
+          if (bannerOffline) bannerOffline.style.display = 'none';
+        } catch (e) {
+          dot.className = 'live-dot err';
+          status.textContent = 'Offline';
+          if (bannerOffline) bannerOffline.style.display = 'block';
+        }
+      }
+      checkHealth();
+      setInterval(checkHealth, 15000);
+    })();
+  </script>
+</body>
+</html>

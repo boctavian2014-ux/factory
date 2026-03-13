@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Run pipeline — AI Content Factory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/theme.css" />
+  <style>
+    .run-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+    .run-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
+    .run-card h3 { margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 600; }
+    .run-card .endpoint { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); margin-bottom: 1rem; }
+    .run-card .out { font-family: var(--font-mono); font-size: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; margin-top: 0.75rem; max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-all; color: var(--text-muted); }
+    .result-global { background: var(--surface); border: 2px solid var(--accent); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+    .result-global h3 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--accent); }
+    .result-global .meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .result-global .body { font-family: var(--font-mono); font-size: 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+    .result-global .body.err { border-color: #c53030; color: #fc8181; }
+    .result-label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-top: 0.75rem; margin-bottom: 0.25rem; }
+    .trends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-top: 0.75rem; }
+    .trend-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+    .trend-card .source { font-size: 0.7rem; text-transform: uppercase; color: var(--accent); margin-bottom: 0.25rem; }
+    .trend-card .keyword { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .trend-card .score { font-size: 0.75rem; color: var(--text-muted); }
+    .trend-card .score-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 0.25rem; }
+    .trend-card .score-bar-inner { height: 100%; background: var(--accent); border-radius: 2px; }
+    .trend-card .hashtags { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.35rem; }
+  </style>
+</head>
+<body>
+  <div class="app-page">
+    <nav class="app-nav">
+      <div class="logo">
+        <a href="/">AI-Orchestrated Content Factory</a>
+        <span class="badge">Run pipeline</span>
+      </div>
+      <div class="live-row">
+        <div class="live-dot" id="live-dot"></div>
+        <span class="live-text">Live: <strong id="live-status">Checking…</strong></span>
+      </div>
+      <div class="links">
+        <a href="/">Dashboard</a>
+        <a href="/run" class="active">Run pipeline</a>
+        <a href="/docs" target="_blank" rel="noopener">API Docs</a>
+        <a href="/redoc" target="_blank" rel="noopener">ReDoc</a>
+        <a href="/health" target="_blank" rel="noopener">Health</a>
+      </div>
+    </nav>
+
+    <div id="banner-https" class="app-msg error" style="display:none; margin-bottom:1rem;">
+      Folosește <strong>http://</strong> nu https://. Deschide <a id="banner-http-link" href="#">http://localhost:8000/run</a>.
+    </div>
+    <div id="banner-offline" class="app-msg error" style="display:none; margin-bottom:1rem;">
+      Serverul nu răspunde. Pornește: <code>uvicorn api.main:app --host 0.0.0.0 --port 8000</code> în <code>ai-content-factory</code>.
+    </div>
+    <div class="hero">
+      <p>Trigger pașii pipeline-ului direct din UI. Folosește <strong>Generează video</strong> pentru un clip complet (hook + concept → script → voce → FFmpeg).</p>
+    </div>
+
+    <div id="result-global" class="result-global" style="display:none;">
+      <h3>Rezultat ultimul request (vizibil peste tot)</h3>
+      <div id="result-global-meta" class="meta"></div>
+      <div id="result-global-body" class="body"></div>
+    </div>
+
+    <p class="section-title">Upload photo/video și fă video</p>
+    <div class="run-card" style="max-width: 560px;">
+      <h3>Încarcă imagine sau video</h3>
+      <div class="endpoint">POST /videos/upload — apoi POST /videos/from-upload</div>
+      <div class="app-form-group">
+        <label>Fișier (JPG, PNG, WebP, GIF sau MP4, MOV, WebM)</label>
+        <input type="file" id="upload-media" accept="image/*,video/*" />
+      </div>
+      <button type="button" id="btn-upload" class="app-btn primary">Încarcă</button>
+      <div id="upload-status" class="app-msg" style="display:none; margin-top:0.5rem;"></div>
+      <div id="upload-preview" style="margin-top:1rem; display:none;">
+        <p class="section-title">Fișier încărcat</p>
+        <div id="upload-preview-media" style="max-width:320px; border-radius:var(--radius); border:1px solid var(--border); overflow:hidden;"></div>
+        <p id="upload-filename" style="font-size:0.85rem; margin-top:0.5rem;"></p>
+        <form id="form-from-upload" class="app-form-group" style="margin-top:1rem;">
+          <div class="app-form-group">
+            <label>Hook</label>
+            <input type="text" name="hook" value="Stop scrolling." placeholder="ex: You're doing it wrong." />
+          </div>
+          <div class="app-form-group">
+            <label>Concept</label>
+            <input type="text" name="concept" value="One tip that gets more views." placeholder="ex: Short tip that gets shared." />
+          </div>
+          <div class="app-form-group">
+            <label>Durata (sec)</label>
+            <input type="number" name="duration_seconds" value="30" min="10" max="60" step="5" />
+          </div>
+          <button type="submit" class="app-btn primary">Generează video din fișier</button>
+        </form>
+        <div id="from-upload-status" class="app-msg" style="display:none; margin-top:0.75rem;"></div>
+        <div id="from-upload-out" style="margin-top:1rem; display:none;">
+          <p class="section-title">Video generat</p>
+          <video id="from-upload-player" controls style="width:100%; max-width:360px; border-radius:var(--radius); border:1px solid var(--border);"></video>
+          <p style="margin-top:0.5rem; font-size:0.85rem;"><a id="from-upload-link" href="#" target="_blank" rel="noopener">Descarcă MP4</a></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="section-title">Generează video (quick, fără DB)</p>
+    <div class="run-card" style="max-width: 560px;">
+      <h3>Un video acum</h3>
+      <div class="endpoint">POST /videos/quick — hook + concept → MP4</div>
+      <form id="form-quick-video" class="app-form-group">
+        <div class="app-form-group">
+          <label>Hook (primele secunde)</label>
+          <input type="text" name="hook" value="Stop scrolling." placeholder="ex: You're doing it wrong." />
+        </div>
+        <div class="app-form-group">
+          <label>Concept (ideea scurtă)</label>
+          <input type="text" name="concept" value="This is how you get more views on shorts." placeholder="ex: One tip that changed my reach." />
+        </div>
+        <div class="app-form-group">
+          <label>Durata (sec)</label>
+          <input type="number" name="duration_seconds" value="30" min="10" max="60" step="5" />
+        </div>
+        <button type="submit" class="app-btn primary">Generează video</button>
+      </form>
+      <div id="quick-video-status" class="app-msg" style="display:none; margin-top:0.75rem;"></div>
+      <div id="quick-video-out" style="margin-top:1rem; display:none;">
+        <p class="section-title">Video generat</p>
+        <video id="quick-video-player" controls style="width:100%; max-width:360px; border-radius:var(--radius); border:1px solid var(--border);"></video>
+        <p style="margin-top:0.5rem; font-size:0.85rem;"><a id="quick-video-link" href="#" target="_blank" rel="noopener">Descarcă MP4</a></p>
+      </div>
+    </div>
+
+    <p class="section-title">Pași pipeline</p>
+    <div class="run-grid">
+      <div class="run-card">
+        <h3>1. Trend Detection — ultimele viral trends</h3>
+        <div class="endpoint">POST /trends/update · GET /trends/list</div>
+        <form id="form-trends" class="app-form-group">
+          <button type="submit" class="app-btn primary">Rulează (scrape + salvează)</button>
+        </form>
+        <button type="button" id="btn-load-trends" class="app-btn" style="margin-top:0.5rem;">Vezi ultimele trends din DB</button>
+        <div id="trends-cards" class="trends-grid" style="display:none;"></div>
+        <div class="result-label">Rezultat (JSON)</div>
+        <div id="out-trends" class="out" style="display:block; min-height:2.5rem;">—</div>
+      </div>
+
+      <div class="run-card">
+        <h3>2. Idea Swarm</h3>
+        <div class="endpoint">POST /ideas/generate</div>
+        <form id="form-ideas" class="app-form-group">
+          <div class="app-form-group">
+            <label>trend_id</label>
+            <input type="number" name="trend_id" value="1" min="1" />
+          </div>
+          <div class="app-form-group">
+            <label>keyword</label>
+            <input type="text" name="keyword" value="viral" placeholder="keyword" />
+          </div>
+          <div class="app-form-group">
+            <label>count (opțional)</label>
+            <input type="number" name="count" value="" placeholder="ex: 10" />
+          </div>
+          <button type="submit" class="app-btn primary">Rulează</button>
+        </form>
+        <div class="result-label">Rezultat</div>
+        <div id="out-ideas" class="out" style="display:block; min-height:2.5rem;">—</div>
+      </div>
+
+      <div class="run-card">
+        <h3>3. Script Engine</h3>
+        <div class="endpoint">POST /scripts/generate</div>
+        <form id="form-scripts" class="app-form-group">
+          <div class="app-form-group">
+            <label>idea_id</label>
+            <input type="number" name="idea_id" value="1" min="1" />
+          </div>
+          <div class="app-form-group">
+            <label>hook</label>
+            <input type="text" name="hook" value="Stop scrolling." placeholder="hook" />
+          </div>
+          <div class="app-form-group">
+            <label>concept</label>
+            <input type="text" name="concept" value="Short tip that gets shared." placeholder="concept" />
+          </div>
+          <button type="submit" class="app-btn primary">Rulează</button>
+        </form>
+        <div class="result-label">Rezultat</div>
+        <div id="out-scripts" class="out" style="display:block; min-height:2.5rem;">—</div>
+      </div>
+
+      <div class="run-card">
+        <h3>Repo → idea</h3>
+        <div class="endpoint">POST /repo/analyze</div>
+        <form id="form-repo" class="app-form-group">
+          <div class="app-form-group">
+            <label>repo_url</label>
+            <input type="text" name="repo_url" value="https://github.com/hpcaitech/Open-Sora" placeholder="https://github.com/owner/repo" />
+          </div>
+          <button type="submit" class="app-btn primary">Analizează</button>
+        </form>
+        <div class="result-label">Rezultat</div>
+        <div id="out-repo" class="out" style="display:block; min-height:2.5rem;">—</div>
+      </div>
+
+      <div class="run-card">
+        <h3>Repo → video (în DB)</h3>
+        <div class="endpoint">POST /repo/to-video</div>
+        <form id="form-repo-video" class="app-form-group">
+          <div class="app-form-group">
+            <label>repo_url</label>
+            <input type="text" name="repo_url" value="https://github.com/hpcaitech/Open-Sora" placeholder="https://github.com/owner/repo" />
+          </div>
+          <button type="submit" class="app-btn primary">Creează trend + idee</button>
+        </form>
+        <div class="result-label">Rezultat</div>
+        <div id="out-repo-video" class="out" style="display:block; min-height:2.5rem;">—</div>
+      </div>
+    </div>
+
+    <footer class="app-footer">
+      <p><a href="/">Dashboard</a> · <a href="/run">Run pipeline</a> · <a href="/docs">API</a> · <a href="/health">Health</a></p>
+    </footer>
+  </div>
+
+  <script>
+    (function() {
+      function showOut(id, text, isErr) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text || '—';
+        el.style.display = 'block';
+      }
+      function jsonBody(obj) {
+        return JSON.stringify(obj, null, 2);
+      }
+      async function parseJsonResponse(r) {
+        var text = await r.text();
+        var data = null;
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e) {
+          return { ok: false, status: r.status, data: null, errorText: text || r.statusText || 'Invalid response' };
+        }
+        return { ok: r.ok, status: r.status, data: data, errorText: null };
+      }
+      function showGlobalResult(method, url, statusCode, body, isError) {
+        var panel = document.getElementById('result-global');
+        var meta = document.getElementById('result-global-meta');
+        var bodyEl = document.getElementById('result-global-body');
+        if (!panel || !meta || !bodyEl) return;
+        panel.style.display = 'block';
+        meta.textContent = method + ' ' + url + ' → ' + statusCode;
+        bodyEl.textContent = typeof body === 'string' ? body : jsonBody(body);
+        bodyEl.classList.toggle('err', !!isError);
+        panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      function renderTrendCards(trends) {
+        var container = document.getElementById('trends-cards');
+        if (!container) return;
+        if (!trends || !trends.length) {
+          container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Niciun trend.</p>';
+          container.style.display = 'block';
+          return;
+        }
+        var html = '';
+        trends.forEach(function(t) {
+          var pct = Math.round((t.trend_score || 0) * 100);
+          var tags = (t.hashtags || []).slice(0, 3).join(' ');
+          html += '<div class="trend-card">' +
+            '<div class="source">' + (t.source || '') + '</div>' +
+            '<div class="keyword">' + (t.keyword || '').substring(0, 24) + (t.keyword && t.keyword.length > 24 ? '…' : '') + '</div>' +
+            '<div class="score">Score ' + pct + '% · Growth ' + (Math.round((t.growth_rate || 0) * 100) + '%') + '</div>' +
+            '<div class="score-bar"><div class="score-bar-inner" style="width:' + pct + '%"></div></div>' +
+            (tags ? '<div class="hashtags">' + tags + '</div>' : '') +
+            '</div>';
+        });
+        container.innerHTML = html;
+        container.style.display = 'grid';
+      }
+
+      var correctRunUrl = 'http://' + (window.location.host || 'localhost:8000') + '/run';
+      document.getElementById('banner-http-link').href = correctRunUrl;
+      if (window.location.protocol === 'https:') {
+        document.getElementById('banner-https').style.display = 'block';
+      }
+      async function checkHealth() {
+        var dot = document.getElementById('live-dot');
+        var status = document.getElementById('live-status');
+        var bannerOffline = document.getElementById('banner-offline');
+        if (!dot || !status) return;
+        try {
+          var r = await fetch('/health');
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          if (res.errorText) { dot.className = 'live-dot err'; status.textContent = 'Eroare'; if (bannerOffline) bannerOffline.style.display = 'block'; return; }
+          dot.className = 'live-dot ' + (d && d.status === 'ok' ? 'ok' : 'err');
+          status.textContent = d && d.status === 'ok' ? 'Operațional' : 'Eroare';
+          if (bannerOffline) bannerOffline.style.display = 'none';
+        } catch (e) {
+          dot.className = 'live-dot err';
+          status.textContent = 'Offline';
+          if (bannerOffline) bannerOffline.style.display = 'block';
+        }
+      }
+      checkHealth();
+      setInterval(checkHealth, 15000);
+
+      var lastUploadFilename = null;
+      document.getElementById('btn-upload').addEventListener('click', async function() {
+        var input = document.getElementById('upload-media');
+        var status = document.getElementById('upload-status');
+        var preview = document.getElementById('upload-preview');
+        var previewMedia = document.getElementById('upload-preview-media');
+        var filenameEl = document.getElementById('upload-filename');
+        if (!input.files || !input.files[0]) {
+          status.style.display = 'block';
+          status.className = 'app-msg error';
+          status.textContent = 'Selectează un fișier.';
+          return;
+        }
+        status.style.display = 'block';
+        status.className = 'app-msg';
+        status.textContent = 'Se încarcă…';
+        preview.style.display = 'none';
+        lastUploadFilename = null;
+        try {
+          var fd = new FormData();
+          fd.append('file', input.files[0]);
+          var r = await fetch('/videos/upload', { method: 'POST', body: fd });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          if (!res.ok) throw new Error((d && d.detail) ? (typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail)) : res.errorText);
+          lastUploadFilename = d.filename;
+          filenameEl.textContent = d.filename + ' (' + d.media_type + ')';
+          var base = window.location.origin;
+          if (d.media_type === 'image') {
+            previewMedia.innerHTML = '<img src="' + base + d.url + '" alt="Upload" style="width:100%; display:block;" />';
+          } else {
+            previewMedia.innerHTML = '<video src="' + base + d.url + '" controls style="width:100%; display:block;"></video>';
+          }
+          preview.style.display = 'block';
+          status.className = 'app-msg success';
+          status.textContent = 'Încărcat. Completează hook/concept și apasă „Generează video din fișier”.';
+          document.getElementById('from-upload-out').style.display = 'none';
+          showGlobalResult('POST', '/videos/upload', r.status, d, false);
+        } catch (err) {
+          status.className = 'app-msg error';
+          status.textContent = 'Eroare: ' + (err.message || String(err));
+          showGlobalResult('POST', '/videos/upload', 0, err.message || String(err), true);
+        }
+      });
+
+      document.getElementById('form-from-upload').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        if (!lastUploadFilename) {
+          document.getElementById('from-upload-status').style.display = 'block';
+          document.getElementById('from-upload-status').className = 'app-msg error';
+          document.getElementById('from-upload-status').textContent = 'Încarcă mai întâi un fișier.';
+          return;
+        }
+        var fd = new FormData(e.target);
+        var status = document.getElementById('from-upload-status');
+        var out = document.getElementById('from-upload-out');
+        var player = document.getElementById('from-upload-player');
+        var link = document.getElementById('from-upload-link');
+        status.style.display = 'block';
+        status.className = 'app-msg';
+        status.textContent = 'Se generează video (script → voce → FFmpeg)…';
+        out.style.display = 'none';
+        try {
+          var r = await fetch('/videos/from-upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uploaded_filename: lastUploadFilename,
+              hook: fd.get('hook') || 'Stop scrolling.',
+              concept: fd.get('concept') || 'Concept.',
+              duration_seconds: parseFloat(fd.get('duration_seconds')) || 30
+            })
+          });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          if (!res.ok) throw new Error((d && d.detail) ? (typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail)) : res.errorText);
+          var base = window.location.origin;
+          var videoUrl = d.video_url ? (base + d.video_url) : null;
+          if (videoUrl) {
+            player.src = videoUrl;
+            link.href = videoUrl;
+            link.download = 'content-factory-from-upload.mp4';
+            out.style.display = 'block';
+            status.className = 'app-msg success';
+            status.textContent = 'Video generat. Redă mai sus sau descarcă.';
+          } else {
+            status.className = 'app-msg error';
+            status.textContent = 'Nu s-a returnat video_url.';
+          }
+          showGlobalResult('POST', '/videos/from-upload', r.status, d, false);
+        } catch (err) {
+          status.className = 'app-msg error';
+          status.textContent = 'Eroare: ' + (err.message || String(err));
+          showGlobalResult('POST', '/videos/from-upload', 0, err.message || String(err), true);
+        }
+      });
+
+      document.getElementById('form-quick-video').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var status = document.getElementById('quick-video-status');
+        var out = document.getElementById('quick-video-out');
+        var player = document.getElementById('quick-video-player');
+        var link = document.getElementById('quick-video-link');
+        status.style.display = 'block';
+        status.className = 'app-msg';
+        status.textContent = 'Se generează video (script → voce → FFmpeg)…';
+        out.style.display = 'none';
+        try {
+          var r = await fetch('/videos/quick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              hook: fd.get('hook') || 'Stop scrolling.',
+              concept: fd.get('concept') || 'Concept.',
+              duration_seconds: parseFloat(fd.get('duration_seconds')) || 30
+            })
+          });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          if (!res.ok) throw new Error((d && d.detail) ? (typeof d.detail === 'string' ? d.detail : JSON.stringify(d.detail)) : res.errorText);
+          var base = window.location.origin;
+          var videoUrl = d.video_url ? (base + d.video_url) : null;
+          if (videoUrl) {
+            player.src = videoUrl;
+            link.href = videoUrl;
+            link.download = 'content-factory-video.mp4';
+            out.style.display = 'block';
+            status.className = 'app-msg success';
+            status.textContent = 'Video generat. Redă mai sus sau descarcă.';
+          } else {
+            status.className = 'app-msg error';
+            status.textContent = 'Nu s-a returnat video_url.';
+          }
+          showGlobalResult('POST', '/videos/quick', r.status, d, false);
+        } catch (err) {
+          status.className = 'app-msg error';
+          status.textContent = 'Eroare: ' + (err.message || String(err));
+          showGlobalResult('POST', '/videos/quick', 0, err.message || String(err), true);
+        }
+      });
+
+      document.getElementById('form-trends').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var out = document.getElementById('out-trends');
+        out.textContent = 'Se trimite…';
+        try {
+          var r = await fetch('/trends/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          out.textContent = res.errorText ? res.errorText : jsonBody(d || {});
+          showGlobalResult('POST', '/trends/update', res.status, res.errorText ? res.errorText : d, !res.ok);
+          if (res.ok && d && d.trends && d.trends.length) renderTrendCards(d.trends);
+        } catch (err) {
+          out.textContent = 'Eroare: ' + err.message;
+          showGlobalResult('POST', '/trends/update', 0, err.message, true);
+        }
+      });
+      document.getElementById('btn-load-trends').addEventListener('click', async function() {
+        var container = document.getElementById('trends-cards');
+        if (container) container.innerHTML = 'Se încarcă…';
+        try {
+          var r = await fetch('/trends/list?limit=30');
+          var res = await parseJsonResponse(r);
+          var list = res.data;
+          if (res.errorText) {
+            if (container) container.innerHTML = '<p style="color:#fc8181;">' + res.errorText.replace(/</g, '&lt;') + '</p>';
+            container.style.display = 'block';
+            showGlobalResult('GET', '/trends/list', res.status, res.errorText, true);
+            return;
+          }
+          renderTrendCards(Array.isArray(list) ? list : []);
+          showGlobalResult('GET', '/trends/list', res.status, list, !res.ok);
+        } catch (err) {
+          if (container) container.innerHTML = '<p style="color:#fc8181;">Eroare: ' + (err.message || '') + '</p>';
+          container.style.display = 'block';
+          showGlobalResult('GET', '/trends/list', 0, err.message, true);
+        }
+      });
+
+      document.getElementById('form-ideas').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var count = fd.get('count');
+        var body = { trend_id: parseInt(fd.get('trend_id'), 10), keyword: fd.get('keyword') || 'viral', trend_score: 0.5, source: 'tiktok' };
+        if (count) body.count = parseInt(count, 10);
+        var out = document.getElementById('out-ideas');
+        out.textContent = 'Se trimite…';
+        try {
+          var r = await fetch('/ideas/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          out.textContent = res.errorText ? res.errorText : jsonBody(d || {});
+          showGlobalResult('POST', '/ideas/generate', res.status, res.errorText ? res.errorText : d, !res.ok);
+        } catch (err) {
+          out.textContent = 'Eroare: ' + err.message;
+          showGlobalResult('POST', '/ideas/generate', 0, err.message, true);
+        }
+      });
+
+      document.getElementById('form-scripts').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var body = { idea_id: parseInt(fd.get('idea_id'), 10), hook: fd.get('hook') || '', concept: fd.get('concept') || '', trend_angle: '', duration_seconds: 30 };
+        var out = document.getElementById('out-scripts');
+        out.textContent = 'Se trimite…';
+        try {
+          var r = await fetch('/scripts/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          out.textContent = res.errorText ? res.errorText : jsonBody(d || {});
+          showGlobalResult('POST', '/scripts/generate', res.status, res.errorText ? res.errorText : d, !res.ok);
+        } catch (err) {
+          out.textContent = 'Eroare: ' + err.message;
+          showGlobalResult('POST', '/scripts/generate', 0, err.message, true);
+        }
+      });
+
+      document.getElementById('form-repo').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var url = e.target.repo_url.value.trim();
+        var out = document.getElementById('out-repo');
+        out.textContent = 'Se trimite…';
+        try {
+          var r = await fetch('/repo/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo_url: url }) });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          out.textContent = res.errorText ? res.errorText : jsonBody(d || {});
+          showGlobalResult('POST', '/repo/analyze', res.status, res.errorText ? res.errorText : d, !res.ok);
+        } catch (err) {
+          out.textContent = 'Eroare: ' + err.message;
+          showGlobalResult('POST', '/repo/analyze', 0, err.message, true);
+        }
+      });
+
+      document.getElementById('form-repo-video').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var url = e.target.repo_url.value.trim();
+        var out = document.getElementById('out-repo-video');
+        out.textContent = 'Se trimite…';
+        try {
+          var r = await fetch('/repo/to-video', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ repo_url: url }) });
+          var res = await parseJsonResponse(r);
+          var d = res.data;
+          out.textContent = res.errorText ? res.errorText : jsonBody(d || {});
+          showGlobalResult('POST', '/repo/to-video', res.status, res.errorText ? res.errorText : d, !res.ok);
+        } catch (err) {
+          out.textContent = 'Eroare: ' + err.message;
+          showGlobalResult('POST', '/repo/to-video', 0, err.message, true);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

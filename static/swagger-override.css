@@ -1,0 +1,28 @@
+/* AI Content Factory — același stil pentru Swagger UI */
+.swagger-ui { background: #0a0c0f !important; }
+.swagger-ui .topbar { background: #12151a !important; border-bottom: 1px solid #2d333b !important; }
+.swagger-ui .topbar .download-url-wrapper { display: none; }
+.swagger-ui .info .title { color: #e6e9ef !important; }
+.swagger-ui .info p, .swagger-ui .info table { color: #8b909a !important; }
+.swagger-ui .opblock { border: 1px solid #2d333b !important; }
+.swagger-ui .opblock .opblock-summary-method { background: #388bfd !important; }
+.swagger-ui .opblock .opblock-summary-path { color: #e6e9ef !important; }
+.swagger-ui .opblock .opblock-summary-description { color: #8b909a !important; }
+.swagger-ui .opblock-body { background: #12151a !important; }
+.swagger-ui .opblock-body pre { background: #0a0c0f !important; color: #e6e9ef !important; border: 1px solid #2d333b !important; }
+.swagger-ui .parameter__name { color: #e6e9ef !important; }
+.swagger-ui .parameter__type { color: #58a6ff !important; }
+.swagger-ui table thead tr th { border-bottom: 1px solid #2d333b !important; color: #8b909a !important; }
+.swagger-ui table tbody tr td { border-bottom: 1px solid #2d333b !important; color: #e6e9ef !important; }
+.swagger-ui .model { color: #e6e9ef !important; }
+.swagger-ui .model-toggle { color: #58a6ff !important; }
+.swagger-ui .btn { background: #1a1e26 !important; border: 1px solid #2d333b !important; color: #58a6ff !important; }
+.swagger-ui .btn.execute { background: #388bfd !important; border-color: #58a6ff !important; color: #0a0c0f !important; }
+.swagger-ui .btn.execute:hover { background: #58a6ff !important; color: #0a0c0f !important; }
+.swagger-ui select { background: #1a1e26 !important; border: 1px solid #2d333b !important; color: #e6e9ef !important; }
+.swagger-ui input[type=text], .swagger-ui textarea { background: #1a1e26 !important; border: 1px solid #2d333b !important; color: #e6e9ef !important; }
+.swagger-ui .response-col_status { color: #3fb950 !important; }
+.swagger-ui .tab li { color: #8b909a !important; }
+.swagger-ui .tab li.active a { color: #58a6ff !important; }
+.swagger-ui .loading-container { background: #0a0c0f !important; }
+body { background: #0a0c0f !important; }

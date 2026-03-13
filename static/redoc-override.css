@@ -1,0 +1,15 @@
+/* AI Content Factory — același stil pentru ReDoc */
+body { background: #0a0c0f !important; color: #e6e9ef !important; }
+.redoc-wrap { background: #0a0c0f !important; }
+nav { background: #12151a !important; border-right: 1px solid #2d333b !important; }
+nav a { color: #8b909a !important; }
+nav a:hover { color: #58a6ff !important; }
+h1, h2, h3 { color: #e6e9ef !important; }
+p, span, div { color: #8b909a !important; }
+code { background: #1a1e26 !important; color: #58a6ff !important; border: 1px solid #2d333b !important; }
+.method { color: #388bfd !important; }
+.opblock-summary-path { color: #e6e9ef !important; }
+.response-col_status { color: #3fb950 !important; }
+.redoc-wrap .menu-content { background: #12151a !important; }
+.redoc-wrap .menu-content a { color: #8b909a !important; }
+.redoc-wrap .menu-content a:hover { color: #58a6ff !important; }

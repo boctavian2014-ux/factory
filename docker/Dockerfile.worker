@@ -1,0 +1,23 @@
+# AI Content Factory — Celery worker (FFmpeg for video rendering)
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY shared/ ./shared/
+COPY services/ ./services/
+COPY workers/ ./workers/
+COPY ml/ ./ml/
+
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Default: run all queues. Override with CMD for dedicated workers, e.g.:
+# celery -A shared.celery_app worker -Q video -c 4 -n video@%h
+CMD ["celery", "-A", "shared.celery_app", "worker", "-l", "info", "-c", "4", "-n", "worker@%h"]
